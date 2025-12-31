@@ -57,7 +57,7 @@ df.drop(['price'], axis = "columns", inplace = True)
 #Saving in parquet format
 #To save in the designated directory
 output_path = PROJECT_ROOT / "data" / "formatted" / "crypto" / "crypto_daily.parquet"
-df.to_parquet(output_path, engine = 'pyarrow')
+df.to_parquet("crypto_daily.parquet", engine = 'pyarrow')
 
 #To check if the parquet was created properly
 df_check = pd.read_parquet(output_path)
