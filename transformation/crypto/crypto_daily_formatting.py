@@ -11,7 +11,7 @@ import pyarrow
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 #File path to the json file
-file_path = PROJECT_ROOT / "data" / "raw" / "crypto" / "bitcoin_price_from2025-02-01_to_2025-12-25.json"
+file_path = PROJECT_ROOT / "data" / "raw" / "crypto" / "bitcoin_price_from_2025-01-01_to_2025-12-31.json"
 
 with open(file_path, "r") as f:
     data = json.load(f)
@@ -60,7 +60,9 @@ output_path = PROJECT_ROOT / "data" / "formatted" / "crypto" / "crypto_daily.par
 df.to_parquet(output_path, engine = 'pyarrow')
 
 #To check if the parquet was created properly
-df_check = pd.read_parquet("crypto_daily.parquet")
+df_check = pd.read_parquet(output_path)
 print(df_check.head())
 print(df_check.shape)
 
+#Check if the parquet was created since it's not appearing on the file tree
+print(output_path.exists())

@@ -3,13 +3,17 @@ import requests
 import time
 import datetime
 import json
+from pathlib import Path
+
+#To solve the problem with the directory
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 #using datetime to mention the desired dates to retrieve data
 #start of the sample
-date_from = datetime.date(2025, 2, 1)
+date_from = datetime.date(2025, 1, 1)
 #end of the sample
-date_to = datetime.date(2025, 12, 25)
+date_to = datetime.date(2025, 12, 31)
 
 #Converting those dates to unix time
 unixtime_from = time.mktime(date_from.timetuple())
@@ -40,7 +44,10 @@ if response.status_code == 200:
     bitcoin_price = data
 
     #If response is good a json file is created in data/raw/crypto
-    created_file_path = f'data/raw/crypto/{id}_price_from{date_from}_to_{date_to}.json'
+    output_dir = PROJECT_ROOT / "data" / "raw" / "crypto"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    created_file_path = output_dir / f"{id}_price_from_{date_from}_to_{date_to}.json"
 
     with open (created_file_path, 'w') as f:
         json.dump(bitcoin_price, f, indent = 2)
