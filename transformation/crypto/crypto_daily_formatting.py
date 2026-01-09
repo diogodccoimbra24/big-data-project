@@ -4,8 +4,8 @@ import json
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import fastparquet as fp
-import pyarrow
+import pyarrow.parquet as pq
+import pyarrow as pa
 
 #To find the project root
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -22,47 +22,56 @@ df = pd.DataFrame(
     columns=['timestamps_ms', 'price']
 )
 
+#Converting stamps to date time
+df["datetime"] = pd.to_datetime(df["timestamps_ms"], unit="ms", utc=True)
+#Making sure the data it's all sorted
+df = df.sort_values("datetime")
+
+#daily close
+df = (
+    df.set_index("datetime")["price"]
+      .resample("D")
+      .last()
+      .reset_index(name="price_end")
+)
+
 #Creating a column to tell us the crypto we are analysing
 df['crypto_id'] = 'bitcoin'
+df['crypto_id'] = df['crypto_id'].astype("string")
 
-#Converting unix to UTC
-df['datetime'] = pd.to_datetime(df['timestamps_ms'], unit = 'ms', utc = True)
+#Excluding hours
+df["date"] = df["datetime"].dt.date
+df.drop(columns=["datetime"], inplace=True)
 
-#Droping unnecessary columns
-df.drop(['timestamps_ms'], axis = "columns", inplace=True)
+df['price_start'] = df['price_end'].shift(1)
 
-#To make sure the date is sorted
-df.sort_values('datetime', ascending = True)
-
-#Excluding the hours because it's not necessary anymore
-df['date'] = df['datetime'].dt.date
-df.drop(['datetime'], axis = "columns", inplace = True)
-
-#Creating a column to tell us the value of the first price of the day (meaning the last price of the previous day)
-df['price_start'] = df['price'].shift(periods = 1)
-
-#Creating a column for the last price of the day
-df['price_end'] = df['price']
-
-#Creating a column for the daily variation
+#Ccolumn for the daily variation
 df['daily_change'] = df['price_end'] - df['price_start']
 
-#Creating a column for daily variation percentage
+#Column for daily variation percentage
 df['daily_change_pct'] = (df['price_end'] - df['price_start']) / df['price_start'] * 100
 
-#Dropping unnecessary column
-df.drop(['price'], axis = "columns", inplace = True)
-
+# arrow date type friendliness
+df["date"] = pd.to_datetime(df["date"])
 
 #Saving in parquet format
 #To save in the designated directory
 output_path = PROJECT_ROOT / "data" / "formatted" / "crypto" / "crypto_daily.parquet"
-df.to_parquet("crypto_daily.parquet", engine = 'pyarrow')
+output_path.parent.mkdir(parents=True, exist_ok=True)
 
-#To check if the parquet was created properly
-df_check = pd.read_parquet(output_path)
-print(df_check.head())
-print(df_check.shape)
 
-#Check if the parquet was created since it's not appearing on the file tree
-print(output_path.exists())
+# Force Arrow schema since the viewer is displaying in other formats
+schema = pa.schema([
+    ("crypto_id", pa.string()),
+    ("date", pa.date32()),
+    ("price_start", pa.float64()),
+    ("price_end", pa.float64()),
+    ("daily_change", pa.float64()),
+    ("daily_change_pct", pa.float64()),
+])
+
+table = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
+pq.write_table(table, output_path)
+
+print(df.columns)
+print("rows:", len(df))
