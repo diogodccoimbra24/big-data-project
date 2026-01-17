@@ -45,7 +45,7 @@ df.drop(columns=["datetime"], inplace=True)
 
 df['price_start'] = df['price_end'].shift(1)
 
-#Ccolumn for the daily variation
+#Column for the daily variation
 df['daily_change'] = df['price_end'] - df['price_start']
 
 #Column for daily variation percentage
