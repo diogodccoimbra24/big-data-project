@@ -74,6 +74,3 @@ response = requests.post(
     headers=headers,
     data=bulk_payload
 )
-
-print("Status:", response.status_code)
-print(response.text[:500])
